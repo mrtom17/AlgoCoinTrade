@@ -6,7 +6,6 @@
 '''
 # import Lib
 import time, json , os , requests, yaml
-from turtle import up
 import pyupbit
 from datetime import datetime
 
