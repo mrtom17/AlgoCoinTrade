@@ -5,8 +5,7 @@
 # AlgoCoinTrade.py
 '''
 # import Lib
-from ast import Num
-import time, json , os, argparse
+import time, sys
 import pyupbit
 import datetime
 import AlgoCoinTrade_COM as ausc
@@ -83,7 +82,6 @@ def _buy_coin(coin, bestk):
 
 def _sell_coin():
     try:
-        global buy_done_list 
         upbit_conn = ausc.conn_upbit()
         coins = get_mycoin_balance('ALL')
         total_qty = 0
@@ -94,14 +92,13 @@ def _sell_coin():
         if total_qty == 0:
             return True
         for c in coins:
-            if c['currency'] != 'KRW' and c['balance'] != 0:
+            if c['currency'] != 'KRW' and c['balance'] > 1:
                 ticker = 'KRW-'+c['currency']
                 balance = float(c['balance']) * 0.9995 
 
                 ret = upbit_conn.sell_market_order(ticker,balance)
                 if ret :
                     setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
-                    buy_done_list.remove(c['currency'])
                 else:
                     setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
                     return False
@@ -132,14 +129,14 @@ if __name__ == '__main__':
         while True:
             t_now = datetime.datetime.now()
             t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
-            t_start = t_now.replace(hour=9, minute=0, second=10, microsecond=0)
+            t_start = t_now.replace(hour=9, minute=1, second=10, microsecond=0)
             t_end = (t_9 + datetime.timedelta(days=1))
 
             if t_9 < t_now < t_start:
                 if _sell_coin() == True:
                     setlog(msg_resell)
                     ausc.send_slack_msg("#stock",msg_resell)
-                time.sleep(10)                
+                    sys.exit(0)            
 
             if t_start < t_now < t_end:
                 for coin in coin_list:
