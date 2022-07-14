@@ -38,8 +38,8 @@ def conn_upbit():
     
     return rst
 
-LOG_FILE_DIR = 'log'
-LOG_FILE_NAME = 'log/xrp_krw.log'
+LOG_FILE_DIR = '/home/ubuntu/AlgoCoinTrade/log'
+LOG_FILE_NAME = '/home/ubuntu/AlgoCoinTrade/log/xrp_krw.log'
 
 def set_logging(msg) -> None:
 
