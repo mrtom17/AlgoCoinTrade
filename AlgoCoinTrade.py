@@ -18,7 +18,7 @@ setlog = ausc.set_logging
 msg_end = 'Kospi & Kosdaq Closed Process self- destructed'
 msg_resell = '`sell_all() returned True -> 전날 잔여 코인 매도!`'
 msg_proc = 'The AlogoCoinTrading process is still alive'
-msg_sellall = '`sell_all() returned True -> self-destructed!`'
+msg_sellall = '`sell_all() returned True -> 변동성 돌파 매수 코인 매도 and self-destructed!`'
 
 def get_mycoin_balance(coin):
 
@@ -89,16 +89,17 @@ def _sell_coin():
             if c['currency'] == 'KRW':
                 continue
             total_qty += float(c['balance'])
-        if total_qty == 0:
+        if total_qty > 0 and total_qty < 1:
             return True
+
         for c in coins:
-            if c['currency'] != 'KRW' and c['balance'] > 1:
+            if c['currency'] != 'KRW' and float(c['balance']) > 1:
                 ticker = 'KRW-'+c['currency']
                 balance = float(c['balance']) * 0.9995 
-
                 ret = upbit_conn.sell_market_order(ticker,balance)
                 if ret :
                     setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
+                    return True
                 else:
                     setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
                     return False
@@ -135,8 +136,8 @@ if __name__ == '__main__':
             if t_9 < t_now < t_start:
                 if _sell_coin() == True:
                     setlog(msg_resell)
-                    ausc.send_slack_msg("#stock",msg_resell)
-                    sys.exit(0)            
+                    ausc.send_slack_msg("#stock",msg_sellall)
+                    sys.exit(0)
 
             if t_start < t_now < t_end:
                 for coin in coin_list:
@@ -149,6 +150,7 @@ if __name__ == '__main__':
                     stocks_cnt = len(get_mycoin_balance('ALL'))
                     ausc.send_slack_msg("#stock",msg_proc)
                     time.sleep(5)
+
             time.sleep(10)
 
     except Exception as ex:

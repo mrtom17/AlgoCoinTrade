@@ -9,14 +9,19 @@ import time, json , os , requests, yaml
 import pyupbit
 from datetime import datetime
 
+conf_json = "/home/ubuntu/AlgoCoinTrade/config.json"
+conf_yaml = "/home/ubuntu/AlgoCoinTrade/coin.yaml"
 
-with open('config.json', 'r') as in_file:
+conf_json_local = "/Users/tom.my/Public/Study/AlgoCoinTrade/config.json"
+conf_yaml_local = "/Users/tom.my/Public/Study/AlgoCoinTrade/coin.yaml"
+
+with open(conf_json, 'r') as in_file:
     config = json.load(in_file)
     my_access = config['access']
     my_secret = config['secret']
     my_slack = config['myslack_token']
 
-with open(r'coin.yaml', encoding='UTF-8') as f:
+with open(conf_yaml, encoding='UTF-8') as f:
     _cfg = yaml.load(f, Loader=yaml.FullLoader)
 
 
