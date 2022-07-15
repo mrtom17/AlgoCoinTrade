@@ -14,11 +14,12 @@ import AlgoCoinTrade_COM as ausc
 setlog = ausc.set_logging
 
 
-# Message 정의 
-msg_end = 'Kospi & Kosdaq Closed Process self- destructed'
+# Message 정의
+msg_end = 'Upbit Auto Trading Process Closing. Process self- destructed'
 msg_resell = '`sell_all() returned True -> 전날 잔여 코인 매도!`'
 msg_proc = 'The AlogoCoinTrading process is still alive'
-msg_sellall = '`sell_all() returned True -> 변동성 돌파 매수 코인 매도 and self-destructed!`'
+msg_sellall = '`sell_all() returned True -> 변동성 돌파 매수 코인 매도 성공 and self-destructed!`'
+msg_sellfail = '`sell_all() returned False -> 변동성 돌파 매수 코인 매도 실패 and self-destructed!`'
 
 def get_mycoin_balance(coin):
 
@@ -52,12 +53,12 @@ def set_coin_target_price(coin, bestk):
 
     except Exception as ex:
         setlog("`get_target_price() -> exception! " + str(ex) + "`")
-        return None , None , None    
+        return None , None , None
 
 def _buy_coin(coin, bestk):
     try:
-        global buy_done_list 
-        if coin in buy_done_list: 
+        global buy_done_list
+        if coin in buy_done_list:
             return False
         target_price, ma5, ma10 = set_coin_target_price(coin,bestk)
         current_price = pyupbit.get_orderbook(ticker=coin)['orderbook_units'][0]['ask_price']
@@ -66,6 +67,7 @@ def _buy_coin(coin, bestk):
             buy_qty = int(buy_amount // current_price)
         if buy_qty < 1:
             return False
+
         if current_price > target_price and current_price > ma5 and current_price > ma10:
             setlog(str(coin) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(current_price) + ' meets the buy condition!`')
             upbit_conn = ausc.conn_upbit()
@@ -78,7 +80,7 @@ def _buy_coin(coin, bestk):
                 setlog('변동성 돌파 매수 주문 실패 -> 코인('+str(coin)+')')
                 return False
     except Exception as ex:
-        setlog("`_buy_coin("+ str(coin) + ") -> exception! " + str(ex) + "`")     
+        setlog("`_buy_coin("+ str(coin) + ") -> exception! " + str(ex) + "`")
 
 def _sell_coin():
     try:
@@ -95,7 +97,7 @@ def _sell_coin():
         for c in coins:
             if c['currency'] != 'KRW' and float(c['balance']) > 1:
                 ticker = 'KRW-'+c['currency']
-                balance = float(c['balance']) * 0.9995 
+                balance = float(c['balance']) * 0.9995
                 ret = upbit_conn.sell_market_order(ticker,balance)
                 if ret :
                     setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
@@ -114,7 +116,7 @@ if __name__ == '__main__':
             setlog('Upbit Connection Fail and retry')
             time.sleep(3)
             ausc.conn_upbit()
-        
+
         coin_list = ausc._cfg['coinlist']
         buy_done_list = []
         target_buy_count = 5
@@ -122,7 +124,7 @@ if __name__ == '__main__':
         coin_name, total_cash = get_mycoin_balance('KRW')
         buy_amount = total_cash * buy_percent
         stocks_cnt = len(get_mycoin_balance('ALL'))
-        target_buy_count = target_buy_count - stocks_cnt+1
+        target_buy_count = target_buy_count - stocks_cnt + 1
         setlog('----------------100% 증거금 주문 가능 금액 :'+str(total_cash))
         setlog('----------------종목별 주문 비율 :'+str(buy_percent))
         setlog('----------------종목별 주문 금액 :'+str(buy_amount))
@@ -134,9 +136,13 @@ if __name__ == '__main__':
             t_end = (t_9 + datetime.timedelta(days=1))
 
             if t_9 < t_now < t_start:
-                if _sell_coin() == True:
-                    setlog(msg_resell)
-                    ausc.send_slack_msg("#stock",msg_sellall)
+                if _sell_coin():
+                    setlog(msg_sellall)
+                    ausc.send_slack_msg("#stock", msg_sellall)
+                    sys.exit(0)
+                if t_now == t_start:
+                    setlog(msg_sellfail)
+                    ausc.send_slack_msg("#stock", msg_sellfail)
                     sys.exit(0)
 
             if t_start < t_now < t_end:
@@ -148,10 +154,10 @@ if __name__ == '__main__':
                         time.sleep(1)
                 if t_now.minute == 30 and 0 <= t_now.second <=5:
                     stocks_cnt = len(get_mycoin_balance('ALL'))
-                    ausc.send_slack_msg("#stock",msg_proc)
+                    ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
 
             time.sleep(10)
 
     except Exception as ex:
-        setlog('`main -> exception! ' + str(ex) + '`')       
+        setlog('`main -> exception! ' + str(ex) + '`')
