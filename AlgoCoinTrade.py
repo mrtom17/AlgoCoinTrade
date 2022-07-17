@@ -18,8 +18,8 @@ setlog = ausc.set_logging
 msg_end = 'Upbit Auto Trading Process Closing. Process self- destructed'
 msg_resell = '`sell_all() returned True -> 전날 잔여 코인 매도!`'
 msg_proc = 'The AlogoCoinTrading process is still alive'
-msg_sellall = '`sell_all() returned True -> 변동성 돌파 매수 코인 매도 성공 and self-destructed!`'
-msg_sellfail = '`sell_all() returned False -> 변동성 돌파 매수 코인 매도 실패 and self-destructed!`'
+msg_sellall = '`sell_all() returned True -> 변동성 돌파 거래 코인 매도 성공 and self-destructed!`'
+msg_sellfail = '`sell_all() returned False -> 변동성 돌파 거래 코인 매도 실패 and self-destructed!`'
 
 def get_mycoin_balance(coin):
 
@@ -84,28 +84,28 @@ def _buy_coin(coin, bestk):
 
 def _sell_coin():
     try:
-        upbit_conn = ausc.conn_upbit()
-        coins = get_mycoin_balance('ALL')
-        total_qty = 0
-        for c in coins:
-            if c['currency'] == 'KRW':
-                continue
-            total_qty += float(c['balance'])
-        if total_qty > 0 and total_qty < 1:
-            return True
+        while True:
+            upbit_conn = ausc.conn_upbit()
+            coins = get_mycoin_balance('ALL')
+            total_qty = 0
+            for c in coins:
+                if c['currency'] == 'KRW':
+                    continue
+                total_qty += float(c['balance'])
+            if total_qty > 0 and total_qty < 1:
+                return True
 
-        for c in coins:
-            if c['currency'] != 'KRW' and float(c['balance']) > 1:
-                ticker = 'KRW-'+c['currency']
-                balance = float(c['balance']) * 0.9995
-                ret = upbit_conn.sell_market_order(ticker,balance)
-                if ret :
-                    setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
-                    return True
-                else:
-                    setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
-                    return False
-            time.sleep(1)
+            for c in coins:
+                if c['currency'] != 'KRW' and float(c['balance']) > 1:
+                    ticker = 'KRW-'+c['currency']
+                    balance = float(c['balance'])
+                    ret = upbit_conn.sell_market_order(ticker,balance)
+                    if ret :
+                        setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
+                    else:
+                        setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
+                time.sleep(1)
+            time.sleep(30)
     except Exception as ex:
         setlog("sell_all() -> exception! " + str(ex))
 
@@ -132,19 +132,17 @@ if __name__ == '__main__':
         while True:
             t_now = datetime.datetime.now()
             t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
-            t_start = t_now.replace(hour=9, minute=1, second=10, microsecond=0)
-            t_end = (t_9 + datetime.timedelta(days=1))
+            t_start = t_now.replace(hour=9, minute=1, second=30, microsecond=0)
+            t_sell = t_now.replace(hour=8, minute=55, second=0, microsecond=0)
+            t_end = (t_sell + datetime.timedelta(days=1))
 
-            if t_9 < t_now < t_start:
+            # 08:55 ~ 09:00 코인 전량 매도
+            if t_sell < t_now < t_9:
                 if _sell_coin():
                     setlog(msg_sellall)
                     ausc.send_slack_msg("#stock", msg_sellall)
                     sys.exit(0)
-                if t_now == t_start:
-                    setlog(msg_sellfail)
-                    ausc.send_slack_msg("#stock", msg_sellfail)
-                    sys.exit(0)
-
+            # 09:01:30 ~ (다음날) 08:55:00
             if t_start < t_now < t_end:
                 for coin in coin_list:
                     coin_no = coin[0]
@@ -156,8 +154,7 @@ if __name__ == '__main__':
                     stocks_cnt = len(get_mycoin_balance('ALL'))
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
-
-            time.sleep(10)
+            time.sleep(3)
 
     except Exception as ex:
         setlog('`main -> exception! ' + str(ex) + '`')
