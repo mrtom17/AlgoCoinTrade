@@ -119,8 +119,8 @@ if __name__ == '__main__':
 
         coin_list = ausc._cfg['coinlist']
         buy_done_list = []
-        target_buy_count = 5
-        buy_percent = 0.19
+        target_buy_count = 3
+        buy_percent = 0.33
         coin_name, total_cash = get_mycoin_balance('KRW')
         buy_amount = total_cash * buy_percent
         stocks_cnt = len(get_mycoin_balance('ALL'))
@@ -134,7 +134,7 @@ if __name__ == '__main__':
             t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
             t_start = t_now.replace(hour=9, minute=1, second=30, microsecond=0)
             t_sell = t_now.replace(hour=8, minute=55, second=0, microsecond=0)
-            t_end = (t_sell + datetime.timedelta(days=1))
+            t_end = (t_9 + datetime.timedelta(days=1)) - datetime.timedelta(minutes=5)
 
             # 08:55 ~ 09:00 코인 전량 매도
             if t_sell < t_now < t_9:
