@@ -39,6 +39,12 @@ def get_mycoin_balance(coin):
     else:
         return None, 0
 
+def get_start_time(ticker):
+    # 시작 시간 조회
+    df = pyupbit.get_ohlcv(ticker,interval='day',count=1)
+    start_time = df.index[0]
+    return start_time
+
 
 def set_coin_target_price(coin, bestk):
     try:
@@ -105,7 +111,7 @@ def _sell_coin():
                     else:
                         setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
                 time.sleep(1)
-            time.sleep(30)
+            time.sleep(5)
     except Exception as ex:
         setlog("sell_all() -> exception! " + str(ex))
 
@@ -122,7 +128,7 @@ if __name__ == '__main__':
         target_buy_count = 3
         buy_percent = 0.33
         coin_name, total_cash = get_mycoin_balance('KRW')
-        buy_amount = total_cash * buy_percent
+        buy_amount = (total_cash * buy_percent) * 0.9995
         stocks_cnt = len(get_mycoin_balance('ALL'))
         target_buy_count = target_buy_count - stocks_cnt + 1
         setlog('----------------100% 증거금 주문 가능 금액 :'+str(total_cash))
@@ -131,19 +137,11 @@ if __name__ == '__main__':
 
         while True:
             t_now = datetime.datetime.now()
-            t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
-            t_start = t_now.replace(hour=9, minute=1, second=30, microsecond=0)
-            t_sell = t_now.replace(hour=8, minute=55, second=0, microsecond=0)
-            t_end = (t_9 + datetime.timedelta(days=1)) - datetime.timedelta(minutes=5)
+            t_start = get_start_time('KRW-XRP')
+            t_end = t_start + datetime.timedelta(days=1)
 
             # 08:55 ~ 09:00 코인 전량 매도
-            if t_sell < t_now < t_9:
-                if _sell_coin():
-                    setlog(msg_sellall)
-                    ausc.send_slack_msg("#stock", msg_sellall)
-                    sys.exit(0)
-            # 09:01:30 ~ (다음날) 08:55:00
-            if t_start < t_now < t_end:
+            if t_start < t_now < t_end - datetime.timedelta(seconds=10):
                 for coin in coin_list:
                     coin_no = coin[0]
                     coin_k = coin[1]
@@ -154,6 +152,11 @@ if __name__ == '__main__':
                     stocks_cnt = len(get_mycoin_balance('ALL'))
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
+            else:
+                if _sell_coin():
+                    setlog(msg_sellall)
+                    ausc.send_slack_msg("#stock", msg_sellall)
+                    sys.exit(0)                
             time.sleep(3)
 
     except Exception as ex:
