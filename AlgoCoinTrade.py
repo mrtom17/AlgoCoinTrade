@@ -137,11 +137,19 @@ if __name__ == '__main__':
 
         while True:
             t_now = datetime.datetime.now()
-            t_start = get_start_time('KRW-XRP')
-            t_end = t_start + datetime.timedelta(days=1)
+            t_start = t_now.replace(hour=9, minute=1, second=0, microsecond=0)
+            t_sell = t_now.replace(hour=8, minute=59, second=0, microsecond=0)
+            t_exit = t_now.replace(hour=9, minute=0, second=0,microsecond=0)
+            t_end = t_now.replace(hour=24, minute=0, second=0,microsecond=0)
+            t_start1 = t_now.replace(hour=00, minute=0, second=0,microsecond=0)
 
             # 08:55 ~ 09:00 코인 전량 매도
-            if t_start < t_now < t_end - datetime.timedelta(seconds=10):
+            if t_sell < t_now < t_exit:
+                    setlog(msg_sellall)
+                    ausc.send_slack_msg("#stock", msg_sellall)
+                    sys.exit(0)
+            # 09:01 ~ 24:00 혹은 00:00 ~ 08:59:00               
+            if t_start < t_now <= t_end or t_start1 < t_now < t_sell:
                 for coin in coin_list:
                     coin_no = coin[0]
                     coin_k = coin[1]
@@ -151,12 +159,7 @@ if __name__ == '__main__':
                 if t_now.minute == 30 and 0 <= t_now.second <=5:
                     stocks_cnt = len(get_mycoin_balance('ALL'))
                     ausc.send_slack_msg("#stock", msg_proc)
-                    time.sleep(5)
-            else:
-                if _sell_coin():
-                    setlog(msg_sellall)
-                    ausc.send_slack_msg("#stock", msg_sellall)
-                    sys.exit(0)                
+                    time.sleep(5)                             
             time.sleep(3)
 
     except Exception as ex:
