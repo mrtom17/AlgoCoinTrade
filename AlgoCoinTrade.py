@@ -61,6 +61,25 @@ def set_coin_target_price(coin, bestk):
         setlog("`get_target_price() -> exception! " + str(ex) + "`")
         return None , None , None
 
+def get_sellable_stock():
+    try:
+        sell_able_list = []
+        upbitConn = ausc.conn_upbit()
+        my_upbit_info = upbitConn.get_balances()
+        for coins in my_upbit_info:
+            if coins['currency'] =='KRW':
+                continue
+            ticker = 'KRW-'+coins['currency']
+            coin_buy_price = float(coins['avg_buy_price'])
+            current_price = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['ask_price']
+            target_profit = coin_buy_price * 0.03
+            if current_price >= (coin_buy_price + target_profit) :
+                sell_able_list.append([ticker,float(coins['balance'])])
+            time.sleep(1)
+        return sell_able_list
+    except Exception as ex:
+        setlog("`get_target_price() -> exception! " + str(ex) + "`")
+
 def _buy_coin(coin, bestk):
     try:
         global buy_done_list
@@ -87,6 +106,25 @@ def _buy_coin(coin, bestk):
                 return False
     except Exception as ex:
         setlog("`_buy_coin("+ str(coin) + ") -> exception! " + str(ex) + "`")
+
+def _sell_each_coin(sell_able_list):
+    try:
+        while True:
+            upbit_conn = ausc.conn_upbit()
+            coins = sell_able_list
+            print(coins)
+            for c in coins:
+                ticker = c[0]
+                balance = float(c[0])
+                ret = upbit_conn.sell_market_order(ticker,balance)
+                if ret :
+                    setlog('변동성 돌파 매도 주문(수익율 3% 도달) 성공 -> 코인('+str(ticker)+')')
+                else:
+                    setlog('변동성 돌파 매도 주문(수익율 3% 도달) 실패 -> 코인('+str(ticker)+')')
+                time.sleep(1)
+            time.sleep(5)
+    except Exception as ex:
+        setlog("sell_each_all() -> exception! " + str(ex))
 
 def _sell_coin():
     try:
@@ -151,15 +189,17 @@ if __name__ == '__main__':
             # 09:01 ~ 24:00 혹은 00:00 ~ 08:59:00               
             if t_start < t_now <= t_end or t_start1 < t_now < t_sell:
                 for coin in coin_list:
-                    coin_no = coin[0]
-                    coin_k = coin[1]
-                    if len(buy_done_list) < target_buy_count:
-                        _buy_coin(coin_no, coin_k)
-                        time.sleep(1)
+                    _buy_coin(coin[0], coin[1])
+                    time.sleep(1)
+                time.sleep(5)
                 if t_now.minute == 30 and 0 <= t_now.second <=5:
                     stocks_cnt = len(get_mycoin_balance('ALL'))
                     ausc.send_slack_msg("#stock", msg_proc)
-                    time.sleep(5)                             
+                    time.sleep(5)
+
+                sell_able_list = get_sellable_stock()
+                if len(sell_able_list) > 0:
+                    _sell_each_coin(sell_able_list)
             time.sleep(3)
 
     except Exception as ex:
