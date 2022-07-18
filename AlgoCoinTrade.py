@@ -140,7 +140,7 @@ if __name__ == '__main__':
             t_start = t_now.replace(hour=9, minute=1, second=0, microsecond=0)
             t_sell = t_now.replace(hour=8, minute=59, second=0, microsecond=0)
             t_exit = t_now.replace(hour=9, minute=0, second=0,microsecond=0)
-            t_end = t_now.replace(hour=24, minute=0, second=0,microsecond=0)
+            t_end = t_now.replace(hour=23, minute=59, second=59,microsecond=0)
             t_start1 = t_now.replace(hour=00, minute=0, second=0,microsecond=0)
 
             # 08:55 ~ 09:00 코인 전량 매도
