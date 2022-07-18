@@ -110,22 +110,21 @@ def _buy_coin(coin, bestk):
     except Exception as ex:
         setlog("`_buy_coin("+ str(coin) + ") -> exception! " + str(ex) + "`")
 
-def _sell_each_coin(sell_able_list):
+def _sell_each_coin(sell_able_list) -> None:
     try:
-        while True:
-            upbit_conn = ausc.conn_upbit()
-            coins = sell_able_list
-            print(coins)
-            for c in coins:
-                ticker = c[0]
-                balance = float(c[0])
-                ret = upbit_conn.sell_market_order(ticker,balance)
-                if ret :
-                    setlog('변동성 돌파 매도 주문(수익율 3% 도달) 성공 -> 코인('+str(ticker)+')')
-                else:
-                    setlog('변동성 돌파 매도 주문(수익율 3% 도달) 실패 -> 코인('+str(ticker)+')')
-                time.sleep(1)
-            time.sleep(5)
+
+        upbit_conn = ausc.conn_upbit()
+        coins = sell_able_list
+        sell_done_coins = []
+        for c in coins:
+            ticker = c[0]
+            balance = float(c[1])
+            ret = upbit_conn.sell_market_order(ticker,balance)
+            if ret :
+                setlog('변동성 돌파 매도 주문(수익율 3% 도달) 성공 -> 코인('+str(ticker)+')')
+            else:
+                setlog('변동성 돌파 매도 주문(수익율 3% 도달) 실패 -> 코인('+str(ticker)+')')
+    
     except Exception as ex:
         setlog("sell_each_all() -> exception! " + str(ex))
 
@@ -170,7 +169,7 @@ if __name__ == '__main__':
         buy_percent = 0.33
         coin_name, total_cash = get_mycoin_balance('KRW')
         buy_amount = (total_cash * buy_percent) * 0.9995
-        stocks_cnt = len(get_mycoin_balance('ALL'))
+        #stocks_cnt = len(get_mycoin_balance('ALL'))
         setlog('----------------100% 증거금 주문 가능 금액 :'+str(total_cash))
         setlog('----------------종목별 주문 비율 :'+str(buy_percent))
         setlog('----------------종목별 주문 금액 :'+str(buy_amount))
@@ -196,7 +195,7 @@ if __name__ == '__main__':
                         _buy_coin(coin[0], coin[1])
                         time.sleep(1)
                 if t_now.minute == 30 and 0 <= t_now.second <=5:
-                    stocks_cnt = len(get_mycoin_balance('ALL'))
+                    #stocks_cnt = len(get_mycoin_balance('ALL'))
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
                 sell_able_list = get_sellable_coin()
