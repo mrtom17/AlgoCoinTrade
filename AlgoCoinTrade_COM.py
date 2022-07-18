@@ -9,8 +9,8 @@ import time, json , os , requests, yaml
 import pyupbit
 from datetime import datetime
 
-conf_json = "/Users/tom.my/Public/Study/AlgoCoinTrade/config.json"
-conf_yaml = "/Users/tom.my/Public/Study/AlgoCoinTrade/coin.yaml"
+conf_json = "/home/ubuntu/AlgoCoinTrade/config.json"
+conf_yaml = "/home/ubuntu/AlgoCoinTrade/coin.yaml"
 
 with open(conf_json, 'r') as in_file:
     config = json.load(in_file)
@@ -35,8 +35,8 @@ def conn_upbit():
     
     return rst
 
-LOG_FILE_DIR = '/Users/tom.my/Public/Study/AlgoCoinTrade/log'
-LOG_FILE_NAME = '/Users/tom.my/Public/Study/AlgoCoinTrade/log/xrp_krw.log'
+LOG_FILE_DIR = '/home/ubuntu/AlgoCoinTrade/log'
+LOG_FILE_NAME = '/home/ubuntu/AlgoCoinTrade/log/xrp_krw.log'
 
 def set_logging(msg) -> None:
 
