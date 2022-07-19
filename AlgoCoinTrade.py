@@ -202,9 +202,9 @@ if __name__ == '__main__':
                 if t_now.minute == 30 and 0 <= t_now.second <=30:
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
-                sell_able_list = get_sellable_coin()
-                if len(sell_able_list) > 0:
-                    _sell_each_coin(sell_able_list)
+                #sell_able_list = get_sellable_coin()
+                #if len(sell_able_list) > 0:
+                #    _sell_each_coin(sell_able_list)
             # 00:00:00 ~ 08:55:00 변동성 돌파 매수 진행 
             if t_00 < t_now < t_sell:
                 for coin in coin_list:
@@ -214,9 +214,9 @@ if __name__ == '__main__':
                 if t_now.minute == 30 and 0 <= t_now.second <=30:
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
-                sell_able_list = get_sellable_coin()
-                if len(sell_able_list) > 0:
-                    _sell_each_coin(sell_able_list)
+                #sell_able_list = get_sellable_coin()
+                #if len(sell_able_list) > 0:
+                #    _sell_each_coin(sell_able_list)
             # 08:55:00 ~ 08:59:00 변동성 매수 물량 전량 매도, 프로세스 종료
             if t_sell < t_now < t_exit:
                 if _sell_coin() == True:
