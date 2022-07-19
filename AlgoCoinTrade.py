@@ -71,9 +71,13 @@ def get_sellable_coin():
                 continue
             ticker = 'KRW-'+coins['currency']
             coin_buy_price = float(coins['avg_buy_price'])
+
             current_price = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['ask_price']
             target_profit = coin_buy_price * 0.03
-            if current_price >= (coin_buy_price + target_profit) :
+            target_sell_price = coin_buy_price + target_profit
+
+            if current_price >= target_sell_price :
+                print(ticker,current_price,target_sell_price )
                 sell_able_list.append([ticker,float(coins['balance'])])
             time.sleep(1)
         return sell_able_list
@@ -88,6 +92,7 @@ def _buy_coin(coin, bestk):
         target_price, ma5, ma10 = set_coin_target_price(coin,bestk)
         current_price = pyupbit.get_orderbook(ticker=coin)['orderbook_units'][0]['ask_price']
         buy_qty = 0
+
         if current_price > 0 and buy_amount > 10000:
             buy_qty = int(buy_amount // current_price)
         else:
@@ -169,38 +174,41 @@ if __name__ == '__main__':
         buy_percent = 0.33
         coin_name, total_cash = get_mycoin_balance('KRW')
         buy_amount = (total_cash * buy_percent) * 0.9995
-        #stocks_cnt = len(get_mycoin_balance('ALL'))
+        soldout = False
         setlog('----------------100% 증거금 주문 가능 금액 :'+str(total_cash))
         setlog('----------------종목별 주문 비율 :'+str(buy_percent))
         setlog('----------------종목별 주문 금액 :'+str(buy_amount))
 
         while True:
             t_now = datetime.datetime.now()
-            t_start = t_now.replace(hour=9, minute=1, second=0, microsecond=0)
-            t_sell = t_now.replace(hour=8, minute=59, second=0, microsecond=0)
-            t_exit = t_now.replace(hour=9, minute=0, second=0,microsecond=0)
-            t_end = t_now.replace(hour=23, minute=59, second=59,microsecond=0)
-            t_start1 = t_now.replace(hour=00, minute=0, second=0,microsecond=0)
-
-            # 08:55 ~ 09:00 코인 전량 매도
-            if t_sell < t_now < t_exit:
+            t_00 = t_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            t_start = t_now.replace(hour=0, minute=5, second=0, microsecond=0)
+            t_sell = t_now.replace(hour=23, minute=50, second=0, microsecond=0)
+            t_exit = t_now.replace(hour=23, minute=55, second=0,microsecond=0)
+            # 00:00:00 ~ 00:05:00 잔여 코인 전량 매도
+            if t_00 < t_now < t_start and soldout == False:
+                soldout = True
                 if _sell_coin():
-                    setlog(msg_sellall)
-                    ausc.send_slack_msg("#stock", msg_sellall)
-                    sys.exit(0)
-            # 09:01 ~ 24:00 혹은 00:00 ~ 08:59:00               
-            if t_start < t_now <= t_end or t_start1 < t_now < t_sell:
+                    setlog(msg_resell)
+                    ausc.send_slack_msg("#stock", msg_resell)
+            # 00:05:00 ~ 23:50:00 변동성 돌파 매수 진행               
+            if t_start < t_now < t_sell:
                 for coin in coin_list:
                     if len(buy_done_list) < target_buy_count:
                         _buy_coin(coin[0], coin[1])
                         time.sleep(1)
-                if t_now.minute == 30 and 0 <= t_now.second <=5:
-                    #stocks_cnt = len(get_mycoin_balance('ALL'))
+                if t_now.minute == 30:
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
                 sell_able_list = get_sellable_coin()
                 if len(sell_able_list) > 0:
                     _sell_each_coin(sell_able_list)
+            # 23:50:00 ~ 23:55:00 변동성 매수 물량 전량 매도, 프로세스 종료
+            if t_sell < t_now < t_exit:
+                if _sell_coin() == True:
+                    setlog(msg_sellall)
+                    ausc.send_slack_msg("#stock",msg_sellall)
+                    sys.exit(0)
             time.sleep(3)
 
     except Exception as ex:
