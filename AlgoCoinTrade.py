@@ -73,7 +73,7 @@ def get_sellable_coin():
             coin_buy_price = float(coins['avg_buy_price'])
 
             current_price = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['ask_price']
-            target_profit = coin_buy_price * 0.03
+            target_profit = coin_buy_price * 0.3
             target_sell_price = coin_buy_price + target_profit
 
             if current_price >= target_sell_price :
@@ -126,9 +126,9 @@ def _sell_each_coin(sell_able_list) -> None:
             balance = float(c[1])
             ret = upbit_conn.sell_market_order(ticker,balance)
             if ret :
-                setlog('변동성 돌파 매도 주문(수익율 3% 도달) 성공 -> 코인('+str(ticker)+')')
+                setlog('변동성 돌파 매도 주문(수익율 30% 도달) 성공 -> 코인('+str(ticker)+')')
             else:
-                setlog('변동성 돌파 매도 주문(수익율 3% 도달) 실패 -> 코인('+str(ticker)+')')
+                setlog('변동성 돌파 매도 주문(수익율 30% 도달) 실패 -> 코인('+str(ticker)+')')
     
     except Exception as ex:
         setlog("sell_each_all() -> exception! " + str(ex))
@@ -191,8 +191,8 @@ if __name__ == '__main__':
             if t_9 < t_now < t_start_one and soldout == False:
                 soldout = True
                 if _sell_coin():
-                    setlog(msg_resell)
-                    ausc.send_slack_msg("#stock", msg_resell)
+                    setlog(msg_sellall)
+                    ausc.send_slack_msg("#stock", msg_sellall)
             # 09:05:00 ~ 23:59:59 변동성 돌파 매수 진행               
             if t_start_one < t_now < t_end_one:
                 for coin in coin_list:
@@ -202,9 +202,9 @@ if __name__ == '__main__':
                 if t_now.minute == 30 and 0 <= t_now.second <=30:
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
-                #sell_able_list = get_sellable_coin()
-                #if len(sell_able_list) > 0:
-                #    _sell_each_coin(sell_able_list)
+                sell_able_list = get_sellable_coin()
+                if len(sell_able_list) > 0:
+                    _sell_each_coin(sell_able_list)
             # 00:00:00 ~ 08:55:00 변동성 돌파 매수 진행 
             if t_00 < t_now < t_sell:
                 for coin in coin_list:
@@ -214,15 +214,14 @@ if __name__ == '__main__':
                 if t_now.minute == 30 and 0 <= t_now.second <=30:
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
-                #sell_able_list = get_sellable_coin()
-                #if len(sell_able_list) > 0:
-                #    _sell_each_coin(sell_able_list)
-            # 08:55:00 ~ 08:59:00 변동성 매수 물량 전량 매도, 프로세스 종료
+                sell_able_list = get_sellable_coin()
+                if len(sell_able_list) > 0:
+                    _sell_each_coin(sell_able_list)
+            # 08:55:00 ~ 08:59:00 프로세스 종료
             if t_sell < t_now < t_exit:
-                if _sell_coin() == True:
-                    setlog(msg_sellall)
-                    ausc.send_slack_msg("#stock",msg_sellall)
-                    sys.exit(0)
+                setlog(msg_end)
+                ausc.send_slack_msg("#stock",msg_end)
+                sys.exit(0)
             time.sleep(3)
 
     except Exception as ex:
