@@ -199,7 +199,7 @@ if __name__ == '__main__':
                     if len(buy_done_list) < target_buy_count:
                         _buy_coin(coin[0], coin[1])
                         time.sleep(1)
-                if t_now.minute == 30 and 0 <= t_now.second <=30:
+                if t_now.minute == 30 and 0 <= t_now.second <=10:
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
                 sell_able_list = get_sellable_coin()
@@ -211,7 +211,7 @@ if __name__ == '__main__':
                     if len(buy_done_list) < target_buy_count:
                         _buy_coin(coin[0], coin[1])
                         time.sleep(1)
-                if t_now.minute == 30 and 0 <= t_now.second <=30:
+                if t_now.minute == 30 and 0 <= t_now.second <=10:
                     ausc.send_slack_msg("#stock", msg_proc)
                     time.sleep(5)
                 sell_able_list = get_sellable_coin()
