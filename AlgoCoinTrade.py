@@ -14,13 +14,6 @@ import AlgoCoinTrade_COM as ausc
 setlog = ausc.set_logging
 
 
-# Message 정의
-msg_end = 'Upbit Auto Trading Process Closing. Process self- destructed'
-msg_resell = '`sell_all() returned True -> 전날 잔여 코인 매도!`'
-msg_proc = 'The AlogoCoinTrading process is still alive'
-msg_sellall = '`sell_all() returned True -> 변동성 돌파 거래 코인 매도 성공 and self-destructed!`'
-msg_sellfail = '`sell_all() returned False -> 변동성 돌파 거래 코인 매도 실패 and self-destructed!`'
-
 def get_mycoin_balance(coin):
 
     #print(coin)
@@ -48,8 +41,8 @@ def get_start_time(ticker):
 
 def set_coin_target_price(coin, bestk):
     try:
-        df = pyupbit.get_ohlcv(coin, interval='day', count=20)
-        target_price = df.iloc[0]['close'] + (df.iloc[0]['high'] - df.iloc[0]['low']) * bestk
+        df = pyupbit.get_ohlcv(coin, interval='day', count=10)
+        target_price = df.iloc[8]['close'] + (df.iloc[8]['high'] - df.iloc[8]['low']) * bestk
         closes = df['close'].sort_index()
         _ma5 = closes.rolling(window=5).mean()
         _ma10 = closes.rolling(window=10).mean()
@@ -79,7 +72,7 @@ def get_sellable_coin():
             if current_price >= target_sell_price :
                 print(ticker,current_price,target_sell_price )
                 sell_able_list.append([ticker,float(coins['balance'])])
-            time.sleep(1)
+            #time.sleep(1)
         return sell_able_list
     except Exception as ex:
         setlog("`get_target_price() -> exception! " + str(ex) + "`")
@@ -87,11 +80,15 @@ def get_sellable_coin():
 def _buy_coin(coin, bestk):
     try:
         global buy_done_list
+
         if coin in buy_done_list:
             return False
+        
         target_price, ma5, ma10 = set_coin_target_price(coin,bestk)
         current_price = pyupbit.get_orderbook(ticker=coin)['orderbook_units'][0]['ask_price']
         buy_qty = 0
+
+        print(t_now, coin , current_price, target_price)
 
         if current_price > 0 and buy_amount > 10000:
             buy_qty = int(buy_amount // current_price)
@@ -100,18 +97,21 @@ def _buy_coin(coin, bestk):
 
         if buy_qty < 1:
             return False
+        
+        coin_name, coin_qty = get_mycoin_balance(coin)
 
         if current_price > target_price and current_price > ma5 and current_price > ma10:
             setlog(str(coin) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(current_price) + ' meets the buy condition!`')
             upbit_conn = ausc.conn_upbit()
             ret = upbit_conn.buy_market_order(coin,buy_amount)
-            if ret:
-                setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(coin)+') 매수가격 ('+str(current_price)+')')
-                buy_done_list.append(coin)
-                return True
-            else:
-                setlog('변동성 돌파 매수 주문 실패 -> 코인('+str(coin)+')')
-                return False
+            if coin_qty < 1:
+                if ret:
+                    setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(coin)+') 매수가격 ('+str(current_price)+')')
+                    buy_done_list.append(coin)
+                    return True
+                else:
+                    setlog('변동성 돌파 매수 주문 실패 -> 코인('+str(coin)+')')
+                    return False
     except Exception as ex:
         setlog("`_buy_coin("+ str(coin) + ") -> exception! " + str(ex) + "`")
 
@@ -120,7 +120,7 @@ def _sell_each_coin(sell_able_list) -> None:
 
         upbit_conn = ausc.conn_upbit()
         coins = sell_able_list
-        sell_done_coins = []
+
         for c in coins:
             ticker = c[0]
             balance = float(c[1])
@@ -163,10 +163,10 @@ def _sell_coin():
 
 if __name__ == '__main__':
     try:
-        if ausc.conn_upbit() == -1:
-            setlog('Upbit Connection Fail and retry')
-            time.sleep(3)
-            ausc.conn_upbit()
+        #if ausc.conn_upbit() == -1:
+        #    setlog('Upbit Connection Fail and retry')
+        #    time.sleep(3)
+        #    ausc.conn_upbit()
 
         coin_list = ausc._cfg['coinlist']
         buy_done_list = []
@@ -180,6 +180,13 @@ if __name__ == '__main__':
         setlog('----------------종목별 주문 금액 :'+str(buy_amount))
 
         while True:
+            # Message 정의
+            msg_end = 'Upbit Auto Trading Process Closing. Process self- destructed'
+            msg_resell = '`sell_all() returned True -> 전날 잔여 코인 매도!`'
+            msg_proc = 'The AlogoCoinTrading process is still alive'
+            msg_sellall = '`sell_all() returned True -> 변동성 돌파 거래 코인 매도 성공 and self-destructed!`'
+            msg_sellfail = '`sell_all() returned False -> 변동성 돌파 거래 코인 매도 실패 and self-destructed!`'
+
             t_now = datetime.datetime.now()
             t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
             t_00 = t_now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -187,6 +194,7 @@ if __name__ == '__main__':
             t_end_one = t_now.replace(hour=23, minute=59, second=59, microsecond=0)
             t_sell = t_now.replace(hour=8, minute=55, second=0, microsecond=0)
             t_exit = t_now.replace(hour=8, minute=59, second=0,microsecond=0)
+
             # 09:00:00 ~ 09:05:00 잔여 코인 전량 매도
             if t_9 < t_now < t_start_one and soldout == False:
                 soldout = True
@@ -196,8 +204,10 @@ if __name__ == '__main__':
             # 09:05:00 ~ 23:59:59 변동성 돌파 매수 진행               
             if t_start_one < t_now < t_end_one:
                 for coin in coin_list:
+                    coin_no = coin[0]
+                    coin_k = coin[1]
                     if len(buy_done_list) < target_buy_count:
-                        _buy_coin(coin[0], coin[1])
+                        _buy_coin(coin_no, coin_k)
                         time.sleep(1)
                 if t_now.minute == 30 and 0 <= t_now.second <=10:
                     ausc.send_slack_msg("#stock", msg_proc)
@@ -205,6 +215,7 @@ if __name__ == '__main__':
                 sell_able_list = get_sellable_coin()
                 if len(sell_able_list) > 0:
                     _sell_each_coin(sell_able_list)
+                time.sleep(5)
             # 00:00:00 ~ 08:55:00 변동성 돌파 매수 진행 
             if t_00 < t_now < t_sell:
                 for coin in coin_list:
