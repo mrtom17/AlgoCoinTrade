@@ -88,8 +88,6 @@ def _buy_coin(coin, bestk):
         current_price = pyupbit.get_orderbook(ticker=coin)['orderbook_units'][0]['ask_price']
         buy_qty = 0
 
-        print(t_now, coin , current_price, target_price)
-
         if current_price > 0 and buy_amount > 10000:
             buy_qty = int(buy_amount // current_price)
         else:
@@ -192,15 +190,15 @@ if __name__ == '__main__':
             t_00 = t_now.replace(hour=0, minute=0, second=0, microsecond=0)
             t_start_one = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
             t_end_one = t_now.replace(hour=23, minute=59, second=59, microsecond=0)
-            t_sell = t_now.replace(hour=8, minute=55, second=0, microsecond=0)
-            t_exit = t_now.replace(hour=8, minute=59, second=0,microsecond=0)
+            t_end_two = t_now.replace(hour=8, minute=30, second=0, microsecond=0)
+            t_exit = t_now.replace(hour=8, minute=40, second=0,microsecond=0)
 
             # 09:00:00 ~ 09:05:00 잔여 코인 전량 매도
             if t_9 < t_now < t_start_one and soldout == False:
                 soldout = True
-                if _sell_coin():
-                    setlog(msg_sellall)
-                    ausc.send_slack_msg("#stock", msg_sellall)
+                if _sell_coin() == True:
+                    setlog(msg_resell)
+                    ausc.send_slack_msg("#stock", msg_resell)
             # 09:05:00 ~ 23:59:59 변동성 돌파 매수 진행               
             if t_start_one < t_now < t_end_one:
                 for coin in coin_list:
@@ -216,11 +214,13 @@ if __name__ == '__main__':
                 if len(sell_able_list) > 0:
                     _sell_each_coin(sell_able_list)
                 time.sleep(5)
-            # 00:00:00 ~ 08:55:00 변동성 돌파 매수 진행 
-            if t_00 < t_now < t_sell:
+            # 00:00:00 ~ 08:30:00 변동성 돌파 매수 진행 
+            if t_00 < t_now < t_end_two:
                 for coin in coin_list:
+                    coin_no = coin[0]
+                    coin_k = coin[1]
                     if len(buy_done_list) < target_buy_count:
-                        _buy_coin(coin[0], coin[1])
+                        _buy_coin(coin_no, coin_k)
                         time.sleep(1)
                 if t_now.minute == 30 and 0 <= t_now.second <=10:
                     ausc.send_slack_msg("#stock", msg_proc)
@@ -228,10 +228,11 @@ if __name__ == '__main__':
                 sell_able_list = get_sellable_coin()
                 if len(sell_able_list) > 0:
                     _sell_each_coin(sell_able_list)
-            # 08:55:00 ~ 08:59:00 프로세스 종료
-            if t_sell < t_now < t_exit:
+                time.sleep(5)
+            # 08:30:00 ~ 08:40:00 프로세스 종료
+            if t_end_two < t_now < t_exit:
                 setlog(msg_end)
-                ausc.send_slack_msg("#stock",msg_end)
+                ausc.send_slack_msg("#stock",buy_done_list)
                 sys.exit(0)
             time.sleep(3)
 
