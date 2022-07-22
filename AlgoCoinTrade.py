@@ -149,10 +149,10 @@ def _sell_coin():
                     ticker = 'KRW-'+c['currency']
                     balance = float(c['balance'])
                     ret = upbit_conn.sell_market_order(ticker,balance)
-                    if ret :
-                        setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
-                    else:
-                        setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
+                if ret :
+                    setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
+                else:
+                    setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
                 time.sleep(1)
             time.sleep(5)
     except Exception as ex:
@@ -186,21 +186,30 @@ if __name__ == '__main__':
             msg_sellfail = '`sell_all() returned False -> 변동성 돌파 거래 코인 매도 실패 and self-destructed!`'
 
             t_now = datetime.datetime.now()
-            t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
-            t_00 = t_now.replace(hour=0, minute=0, second=0, microsecond=0)
-            t_start_one = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
+            t_sell_start = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
+            t_sell_end = t_now.replace(hour=9, minute=10, second=0, microsecond=0)
+            t_buy_one = t_now.replace(hour=9, minute=30, second=0, microsecond=0)
             t_end_one = t_now.replace(hour=23, minute=59, second=59, microsecond=0)
+            t_buy_two = t_now.replace(hour=0, minute=0, second=0, microsecond=0)
             t_end_two = t_now.replace(hour=8, minute=30, second=0, microsecond=0)
             t_exit = t_now.replace(hour=8, minute=40, second=0,microsecond=0)
 
-            # 09:00:00 ~ 09:05:00 잔여 코인 전량 매도
-            if t_9 < t_now < t_start_one and soldout == False:
+            # 09:05:00 ~ 09:10:00 잔여 코인 전량 매도
+            if t_sell_start < t_now < t_sell_end and soldout == False:
                 soldout = True
                 if _sell_coin() == True:
                     setlog(msg_resell)
                     ausc.send_slack_msg("#stock", msg_resell)
-            # 09:05:00 ~ 23:59:59 변동성 돌파 매수 진행               
-            if t_start_one < t_now < t_end_one:
+
+                    buy_percent = 0.33
+                    coin_name, total_cash = get_mycoin_balance('KRW')
+                    buy_amount = (total_cash * buy_percent) * 0.9995
+                    setlog('----------------100% 증거금 주문 가능 금액 :'+str(total_cash))
+                    setlog('----------------종목별 주문 비율 :'+str(buy_percent))
+                    setlog('----------------종목별 주문 금액 :'+str(buy_amount))
+
+            # 09:30:00 ~ 23:59:59 변동성 돌파 매수 진행               
+            if t_buy_one < t_now < t_end_one:
                 for coin in coin_list:
                     coin_no = coin[0]
                     coin_k = coin[1]
@@ -215,7 +224,7 @@ if __name__ == '__main__':
                     _sell_each_coin(sell_able_list)
                 time.sleep(5)
             # 00:00:00 ~ 08:30:00 변동성 돌파 매수 진행 
-            if t_00 < t_now < t_end_two:
+            if t_buy_two < t_now < t_end_two:
                 for coin in coin_list:
                     coin_no = coin[0]
                     coin_k = coin[1]
