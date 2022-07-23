@@ -99,10 +99,10 @@ def _buy_coin(coin, bestk):
         coin_name, coin_qty = get_mycoin_balance(coin)
 
         if current_price > target_price and current_price > ma5 and current_price > ma10:
-            setlog(str(coin) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(current_price) + ' meets the buy condition!`')
-            upbit_conn = ausc.conn_upbit()
-            ret = upbit_conn.buy_market_order(coin,buy_amount)
             if coin_qty < 1:
+                setlog(str(coin) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(current_price) + ' meets the buy condition!`')
+                upbit_conn = ausc.conn_upbit()
+                ret = upbit_conn.buy_market_order(coin,buy_amount)
                 if ret:
                     setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(coin)+') 매수가격 ('+str(current_price)+')')
                     buy_done_list.append(coin)
