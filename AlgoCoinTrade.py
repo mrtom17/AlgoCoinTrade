@@ -149,10 +149,10 @@ def _sell_coin():
                     ticker = 'KRW-'+c['currency']
                     balance = float(c['balance'])
                     ret = upbit_conn.sell_market_order(ticker,balance)
-                if ret :
-                    setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
-                else:
-                    setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
+                    if ret :
+                        setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
+                    else:
+                        setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
                 time.sleep(1)
             time.sleep(5)
     except Exception as ex:
