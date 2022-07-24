@@ -29,10 +29,32 @@ def get_mycoin_balance(coin):
     else:
         return None, 0
 
+def get_buy_able_coins(coin_list):
+    try:
+        coin_output = []
+        for coin in coin_list:
+            coin = coin_list[0]
+            bestk = coin_list[1]
+            df = pyupbit.get_ohlcv(coin, interval='day', count=10)
+            target_price = df.iloc[8]['close'] + (df.iloc[8]['high'] - df.iloc[8]['low']) * bestk
+            closes = df['close'].sort_index()
+            _ma5 = closes.rolling(window=5).mean()
+            _ma10 = closes.rolling(window=10).mean()
+            ma5 = _ma5.iloc[-1]
+            ma10 = _ma10.iloc[-1]
+            _coin_output = {'coin :'+coin ,'target_p :'+target_price, 'ma5 :'+ma5, 'ma10 :'+ma10}
+            coin_output.append(_coin_output)
+        return coin_output
+
+    except Exception as ex:
+        setlog("`get_target_price() -> exception! " + str(ex) + "`")
+        return None    
+
 if __name__ == '__main__':
     try:
 
         coin_list = accm._cfg['coinlist']
+        target_coin_values = get_buy_able_coins(coin_list)
         coin_buy_done_list = []
         coin_target_buy_count = 3
         buy_percent = 0.33
@@ -65,6 +87,7 @@ if __name__ == '__main__':
                 setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(buy_percent))
                 setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(coin_cash))
                 setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(buy_amount))
+                setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(target_coin_values))
 
                 if t_now.minute == 30:
                     sys.exit(0)
