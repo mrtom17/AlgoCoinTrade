@@ -12,8 +12,37 @@ import AlgoCoinTrade_COM as accm
 
 setlog = accm.set_logging
 
+def get_mycoin_balance(coin):
+
+    upbitConn = accm.conn_upbit()
+    my_upbit_info = upbitConn.get_balances()
+
+    for coins in my_upbit_info:
+        coin_name = coins['currency']
+        coin_bal = float(coins['balance'])
+
+        if coin_name == coin:
+            return coin_name, coin_bal
+
+    if coin == 'ALL':
+        return my_upbit_info
+    else:
+        return None, 0
+
 if __name__ == '__main__':
     try:
+
+        coin_list = accm._cfg['coinlist']
+        coin_buy_done_list = []
+        coin_target_buy_count = 3
+        buy_percent = 0.33
+        coin_name, coin_cash = get_mycoin_balance('KRW')
+        buy_amount = (coin_cash * buy_percent) * 0.9995
+        soldout = False
+        setlog('----------------100% 증거금 주문 가능 금액 :'+str(coin_cash))
+        setlog('----------------종목별 주문 비율 :'+str(buy_percent))
+        setlog('----------------종목별 주문 금액 :'+str(buy_amount))
+
         while True:
 
             t_now = datetime.datetime.now()
@@ -30,7 +59,13 @@ if __name__ == '__main__':
                 setlog('09:05:00 ~ 09:10:00 잔여 코인 전량 매도')
             # 09:30:00 ~ 23:59:59 변동성 돌파 매수 진행               
             if t_buy_one < t_now < t_end_one:
-                setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행')
+                setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(coin_list))
+                setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(coin_buy_done_list))
+                setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(coin_target_buy_count))
+                setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(buy_percent))
+                setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(coin_cash))
+                setlog('09:30:00 ~ 23:59:59 변동성 돌파 매수 진행 ->' + str(buy_amount))
+
                 if t_now.minute == 30:
                     sys.exit(0)
                 time.sleep(60)
