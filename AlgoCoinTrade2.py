@@ -66,7 +66,7 @@ def _buy_able_coin(infos):
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
             if ticker not in coin_buy_done_list:
                 _coin_output = {'coin' : ticker ,'target_p' : t_price , 'ma5' : _ma5, 'ma10' : _ma10}
-                print(_coin_output)
+                #print(_coin_output)
                 coin_buy_able_list.append(_coin_output)
         
         return coin_buy_able_list
@@ -96,7 +96,7 @@ def get_sellable_coin():
             target_sell_price = coin_buy_price + target_profit
 
             if current_price >= target_sell_price :
-                print(ticker,current_price,target_sell_price )
+                #print(ticker,current_price,target_sell_price )
                 sell_able_list.append([ticker,float(coins['balance'])])
             time.sleep(1)
         return sell_able_list
@@ -264,9 +264,10 @@ if __name__ == '__main__':
                         for bcoin in lcoins:
                             _buy_coin(bcoin)
                             time.sleep(1)
-                sell_able_list = get_sellable_coin()
-                if len(sell_able_list) > 0:
-                    _sell_each_coin(sell_able_list)
+                if len(coin_buy_done_list) > 0:
+                    sell_able_list = get_sellable_coin()
+                    if len(sell_able_list) > 0:
+                        _sell_each_coin(sell_able_list)
                 if t_now.minute == 30 and 0 <= t_now.second <=10:
                     accm.send_slack_msg("#stock", msg_proc)
                 time.sleep(5)
@@ -288,9 +289,10 @@ if __name__ == '__main__':
                         for bcoin in lcoins:
                             _buy_coin(bcoin)
                             time.sleep(1)
-                sell_able_list = get_sellable_coin()
-                if len(sell_able_list) > 0:
-                    _sell_each_coin(sell_able_list)
+                if len(coin_buy_done_list) > 0:
+                    sell_able_list = get_sellable_coin()
+                    if len(sell_able_list) > 0:
+                        _sell_each_coin(sell_able_list)
                 if t_now.minute == 30 and 0 <= t_now.second <=10:
                     accm.send_slack_msg("#stock", msg_proc)
                 time.sleep(5)
