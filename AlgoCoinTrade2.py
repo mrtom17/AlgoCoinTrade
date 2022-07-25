@@ -92,7 +92,7 @@ def get_sellable_coin():
             coin_buy_price = float(coins['avg_buy_price'])
 
             current_price = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['ask_price']
-            target_profit = coin_buy_price * 0.03
+            target_profit = coin_buy_price * 0.19
             target_sell_price = coin_buy_price + target_profit
 
             if current_price >= target_sell_price :
@@ -158,9 +158,9 @@ def _sell_each_coin(sell_able_list) -> None:
             balance = float(c[1])
             ret = upbit_conn.sell_market_order(ticker,balance)
             if ret :
-                setlog('변동성 돌파 매도 주문(수익율 30% 도달) 성공 -> 코인('+str(ticker)+')')
+                setlog('변동성 돌파 매도 주문(수익율 19% 도달) 성공 -> 코인('+str(ticker)+')')
             else:
-                setlog('변동성 돌파 매도 주문(수익율 30% 도달) 실패 -> 코인('+str(ticker)+')')
+                setlog('변동성 돌파 매도 주문(수익율 19% 도달) 실패 -> 코인('+str(ticker)+')')
             time.sleep(1)
         time.sleep(5)
     except Exception as ex:
