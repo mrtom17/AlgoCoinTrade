@@ -130,7 +130,7 @@ def _buy_coin(infos):
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
             setlog(str(ticker) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(t_price) + ' meets the buy condition!`')
             upbit_conn = accm.conn_upbit()
-            ret = upbit_conn.buy_limit_order(ticker,t_price,buy_amount)
+            ret = upbit_conn.buy_limit_order(ticker,t_price,buy_qty,contain_req=False)
             if ret:
                 setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(ticker)+') 매수가격 ('+str(t_price)+')')
                 coin_buy_done_list.append(ticker)
