@@ -9,7 +9,7 @@ import time, json , os , requests, yaml
 import pyupbit
 from datetime import datetime
 
-svc_type = 'local'
+svc_type = ''
 
 if svc_type == 'local':
     conf_json = "/Users/tom.my/Public/Study/AlgoCoinTrade/config.json"
