@@ -66,9 +66,7 @@ def _buy_able_coin(infos):
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
             if ticker not in coin_buy_done_list:
                 _coin_output = {'coin' : ticker ,'target_p' : t_price , 'ma5' : _ma5, 'ma10' : _ma10}
-                #print(_coin_output)
                 coin_buy_able_list.append(_coin_output)
-        
         return coin_buy_able_list
 
     except Exception as ex:
@@ -94,9 +92,7 @@ def get_sellable_coin():
             current_price = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['ask_price']
             target_profit = coin_buy_price * 0.19
             target_sell_price = coin_buy_price + target_profit
-
-            if current_price >= target_sell_price :
-                #print(ticker,current_price,target_sell_price )
+            if current_price >= target_sell_price:
                 sell_able_list.append([ticker,float(coins['balance'])])
             time.sleep(1)
         return sell_able_list
@@ -116,10 +112,8 @@ def _buy_coin(infos):
             return False
 
         _ , my_coin_qty = get_mycoin_balance(ticker[4:])
-
-        #print(ticker, my_coin_qty)
-
-        if my_coin_qty > 1 :
+        
+        if my_coin_qty > 1:
             return False
 
         current_price = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['ask_price']
@@ -133,12 +127,9 @@ def _buy_coin(infos):
         if buy_qty < 1:
             return False
 
-        #print(t_price , current_price)
-
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
             setlog(str(ticker) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(t_price) + ' meets the buy condition!`')
             upbit_conn = accm.conn_upbit()
-            #ret = upbit_conn.buy_market_order(ticker,buy_amount)
             ret = upbit_conn.buy_limit_order(ticker,t_price,buy_amount)
             if ret:
                 setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(ticker)+') 매수가격 ('+str(t_price)+')')
@@ -227,20 +218,20 @@ if __name__ == '__main__':
             
             # 시간 정의
             t_now = datetime.datetime.now()
-            t_sell_start = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
-            t_sell_end = t_now.replace(hour=9, minute=10, second=0, microsecond=0)
-            t_buy_one = t_now.replace(hour=9, minute=30, second=0, microsecond=0)
+            t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
+            t_sell_end = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
+            t_buy_one = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
             t_end_one = t_now.replace(hour=23, minute=59, second=59, microsecond=0)
             t_buy_two = t_now.replace(hour=0, minute=0, second=0, microsecond=0)
             t_end_two = t_now.replace(hour=8, minute=30, second=0, microsecond=0)
             t_exit = t_now.replace(hour=8, minute=40, second=0,microsecond=0)
 
-            # 09:05:00 ~ 09:10:00 잔여 코인 전량 매도
-            if t_sell_start < t_now < t_sell_end and soldout == False:
+            # 09:00:00 ~ 09:05:00 잔여 코인 전량 매도
+            if t_9 < t_now < t_sell_end and soldout == False:
                 soldout = True
                 if _sell_coin() == True:
-                    setlog('09:05:00 ~ 09:10:00 잔여 코인 전량 매도')
-                    accm.send_slack_msg("#stock", '09:05:00 ~ 09:10:00 잔여 코인 전량 매도')
+                    setlog('09:00:00 ~ 09:05:00 잔여 코인 전량 매도')
+                    accm.send_slack_msg("#stock", '09:00:00 ~ 09:05:00 잔여 코인 전량 매도')
 
                     buy_percent = 0.33
                     coin_name, total_cash = get_mycoin_balance('KRW')
@@ -249,16 +240,19 @@ if __name__ == '__main__':
                     setlog('----------------종목별 주문 비율 :'+str(buy_percent))
                     setlog('----------------종목별 주문 금액 :'+str(buy_amount))
 
-            # 09:30:00 ~ 23:59:59 변동성 돌파 매수 진행           
+            # 09:05:00 ~ 23:59:59 변동성 돌파 매수 진행           
             if t_buy_one < t_now < t_end_one:
+                print(coin_buy_done_list)
                 if len(coin_buy_done_list) < coin_target_buy_count:
                     for infos in target_coin_values:
                         lcoins = _buy_able_coin(infos)
                         time.sleep(1)
+                    
                     if len(lcoins) > 0 and len(lcoins) < 4:
                         for bcoin in lcoins:
                             _buy_coin(bcoin)
                             time.sleep(1)
+                        coin_buy_able_list=[]
                     if len(lcoins) > 4:
                         coin_target_buy_count = len(lcoins)
                         buy_percent = 1 / len(lcoins)
@@ -267,6 +261,7 @@ if __name__ == '__main__':
                         for bcoin in lcoins:
                             _buy_coin(bcoin)
                             time.sleep(1)
+                        coin_buy_able_list=[]
                 if len(coin_buy_done_list) > 0:
                     sell_able_list = get_sellable_coin()
                     if len(sell_able_list) > 0:
@@ -280,10 +275,12 @@ if __name__ == '__main__':
                     for infos in target_coin_values:
                         lcoins = _buy_able_coin(infos)
                         time.sleep(1)
+                    
                     if len(lcoins) > 0 and len(lcoins) < 4:
                         for bcoin in lcoins:
                             _buy_coin(bcoin)
                             time.sleep(1)
+                        coin_buy_able_list=[]
                     if len(lcoins) > 4:
                         coin_target_buy_count = len(lcoins)
                         buy_percent = 1 / len(lcoins)
@@ -292,6 +289,7 @@ if __name__ == '__main__':
                         for bcoin in lcoins:
                             _buy_coin(bcoin)
                             time.sleep(1)
+                        coin_buy_able_list=[]
                 if len(coin_buy_done_list) > 0:
                     sell_able_list = get_sellable_coin()
                     if len(sell_able_list) > 0:
