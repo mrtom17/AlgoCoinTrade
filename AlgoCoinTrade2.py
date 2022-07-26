@@ -133,7 +133,7 @@ def _buy_coin(infos):
         if buy_qty < 1:
             return False
 
-        print(t_price , current_price)
+        #print(t_price , current_price)
 
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
             setlog(str(ticker) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(t_price) + ' meets the buy condition!`')
