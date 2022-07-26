@@ -117,7 +117,7 @@ def _buy_coin(infos):
 
         _ , my_coin_qty = get_mycoin_balance(ticker[4:])
 
-        print(ticker, my_coin_qty)
+        #print(ticker, my_coin_qty)
 
         if my_coin_qty > 1 :
             return False
@@ -133,12 +133,15 @@ def _buy_coin(infos):
         if buy_qty < 1:
             return False
 
+        print(t_price , current_price)
+
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
-            setlog(str(ticker) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(current_price) + ' meets the buy condition!`')
+            setlog(str(ticker) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(t_price) + ' meets the buy condition!`')
             upbit_conn = accm.conn_upbit()
-            ret = upbit_conn.buy_market_order(ticker,buy_amount)
+            #ret = upbit_conn.buy_market_order(ticker,buy_amount)
+            ret = upbit_conn.buy_limit_order(ticker,t_price,buy_amount)
             if ret:
-                setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(ticker)+') 매수가격 ('+str(current_price)+')')
+                setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(ticker)+') 매수가격 ('+str(t_price)+')')
                 coin_buy_done_list.append(ticker)
                 return True
             else:
