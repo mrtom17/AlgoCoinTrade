@@ -63,10 +63,13 @@ def _buy_able_coin(infos):
 
         current_price = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['ask_price']
 
+        #print('ALL',ticker,current_price,t_price,_ma5,_ma10)
+
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
             if ticker not in coin_buy_done_list:
                 _coin_output = {'coin' : ticker ,'target_p' : t_price , 'ma5' : _ma5, 'ma10' : _ma10}
                 coin_buy_able_list.append(_coin_output)
+            #print('_buy_able_coin',_coin_output)
         return coin_buy_able_list
 
     except Exception as ex:
@@ -130,7 +133,9 @@ def _buy_coin(infos):
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
             setlog(str(ticker) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(t_price) + ' meets the buy condition!`')
             upbit_conn = accm.conn_upbit()
+            #print('_buy_coin',ticker,t_price,buy_qty)
             ret = upbit_conn.buy_limit_order(ticker,t_price,buy_qty)
+            #ret = True
             if ret:
                 setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(ticker)+') 매수가격 ('+str(t_price)+')')
                 coin_buy_done_list.append(ticker)
@@ -242,11 +247,11 @@ if __name__ == '__main__':
 
             # 09:05:00 ~ 23:59:59 변동성 돌파 매수 진행           
             if t_buy_one < t_now < t_end_one:
-                print(coin_buy_done_list)
+                #print(coin_buy_done_list)
                 if len(coin_buy_done_list) < coin_target_buy_count:
                     for infos in target_coin_values:
                         lcoins = _buy_able_coin(infos)
-                        time.sleep(1)
+                        time.sleep(0.5)
                     
                     if len(lcoins) > 0 and len(lcoins) < 4:
                         for bcoin in lcoins:
@@ -268,13 +273,13 @@ if __name__ == '__main__':
                         _sell_each_coin(sell_able_list)
                 if t_now.minute == 30 and 0 <= t_now.second <=10:
                     accm.send_slack_msg("#stock", msg_proc)
-                time.sleep(5)
+                time.sleep(1)
             # 00:00:00 ~ 08:30:00 변동성 돌파 매수 진행 
             if t_buy_two < t_now < t_end_two:
                 if len(coin_buy_done_list) < coin_target_buy_count:
                     for infos in target_coin_values:
                         lcoins = _buy_able_coin(infos)
-                        time.sleep(1)
+                        time.sleep(0.5)
                     
                     if len(lcoins) > 0 and len(lcoins) < 4:
                         for bcoin in lcoins:
@@ -296,11 +301,11 @@ if __name__ == '__main__':
                         _sell_each_coin(sell_able_list)
                 if t_now.minute == 30 and 0 <= t_now.second <=10:
                     accm.send_slack_msg("#stock", msg_proc)
-                time.sleep(5)
+                time.sleep(1)
             # 08:30:00 ~ 08:40:00 프로세스 종료
             if t_end_two < t_now < t_exit:
                 accm.send_slack_msg("#stock",msg_end)
                 sys.exit(0)
-            time.sleep(3)
+            time.sleep(1)
     except Exception as ex:
         setlog('`main -> exception! ' + str(ex) + '`')
