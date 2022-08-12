@@ -5,7 +5,9 @@
 # AlgoCoinTrade.py
 '''
 # import Lib
+from distutils.log import info
 import time, sys
+from pandas import notnull
 import pyupbit
 import datetime
 import AlgoCoinTrade_COM as accm
@@ -107,7 +109,7 @@ def _buy_coin(infos):
         global coin_buy_done_list
 
         ticker = infos['coin']
-        t_price = infos['target_p']
+        t_price = int(infos['target_p'])
         _ma5 = infos['ma5']
         _ma10 = infos['ma10']
 
@@ -133,16 +135,16 @@ def _buy_coin(infos):
         if current_price > t_price and current_price > _ma5 and current_price > _ma10:
             setlog(str(ticker) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(t_price) + ' meets the buy condition!`')
             upbit_conn = accm.conn_upbit()
-            #print('_buy_coin',ticker,t_price,buy_qty)
             ret = upbit_conn.buy_limit_order(ticker,t_price,buy_qty)
-            #ret = True
-            if ret:
-                setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(ticker)+') 매수가격 ('+str(t_price)+')')
+
+            if 'error' in ret:
+                setlog('변동성 돌파 매수 주문 실패 -> 코인('+str(ticker)+') error message('+str(ret['error']['message'])+')')
+                return False
+            else:
+                setlog('변동성 돌파 매수 주문 성공 -> 코인('+str(ticker)+') 매수가격 ('+str(ret['price'])+') 매수상태 ('+str(ret['state'])+')')
                 coin_buy_done_list.append(ticker)
                 return True
-            else:
-                setlog('변동성 돌파 매수 주문 실패 -> 코인('+str(ticker)+')')
-                return False
+
     except Exception as ex:
         setlog("`_buy_coin("+ str(ticker) + ") -> exception! " + str(ex) + "`")
 
@@ -249,57 +251,44 @@ if __name__ == '__main__':
             if t_buy_one < t_now < t_end_one:
                 #print(coin_buy_done_list)
                 if len(coin_buy_done_list) < coin_target_buy_count:
+                    #for infos in target_coin_values:
+                    #    lcoins = _buy_able_coin(infos)
+                    #    time.sleep(0.5)
                     for infos in target_coin_values:
-                        lcoins = _buy_able_coin(infos)
-                        time.sleep(0.5)
-                    
-                    if len(lcoins) > 0 and len(lcoins) < 4:
-                        for bcoin in lcoins:
-                            _buy_coin(bcoin)
-                            time.sleep(1)
-                        coin_buy_able_list=[]
-                    if len(lcoins) > 4:
-                        coin_target_buy_count = len(lcoins)
-                        buy_percent = 1 / len(lcoins)
-                        coin_name, coin_cash = get_mycoin_balance('KRW')
-                        buy_amount = (coin_cash * buy_percent) * 0.9995
-                        for bcoin in lcoins:
-                            _buy_coin(bcoin)
-                            time.sleep(1)
-                        coin_buy_able_list=[]
+                        if infos['coin'] in coin_buy_done_list:
+                            continue
+                        if _buy_coin(infos) == False:
+                            continue
+                        #print(infos)
+                        #print(coin_buy_done_list)
+                        time.sleep(1)
+                    coin_buy_able_list=[]
                 if len(coin_buy_done_list) > 0:
                     sell_able_list = get_sellable_coin()
                     if len(sell_able_list) > 0:
                         _sell_each_coin(sell_able_list)
-                if t_now.minute == 30 and 0 <= t_now.second <=10:
+                if t_now.minute == 30 and 0 <= t_now.second <=3:
                     accm.send_slack_msg("#stock", msg_proc)
                 time.sleep(1)
             # 00:00:00 ~ 08:30:00 변동성 돌파 매수 진행 
             if t_buy_two < t_now < t_end_two:
                 if len(coin_buy_done_list) < coin_target_buy_count:
-                    for infos in target_coin_values:
-                        lcoins = _buy_able_coin(infos)
-                        time.sleep(0.5)
+                    #for infos in target_coin_values:
+                    #    lcoins = _buy_able_coin(infos)
+                    #    time.sleep(0.5)
                     
-                    if len(lcoins) > 0 and len(lcoins) < 4:
-                        for bcoin in lcoins:
-                            _buy_coin(bcoin)
-                            time.sleep(1)
-                        coin_buy_able_list=[]
-                    if len(lcoins) > 4:
-                        coin_target_buy_count = len(lcoins)
-                        buy_percent = 1 / len(lcoins)
-                        coin_name, coin_cash = get_mycoin_balance('KRW')
-                        buy_amount = (coin_cash * buy_percent) * 0.9995
-                        for bcoin in lcoins:
-                            _buy_coin(bcoin)
+                    for infos in target_coin_values:
+                        if infos['coin'] in coin_buy_done_list:
+                            continue
+                        if _buy_coin(infos) == False:
+                            continue
                             time.sleep(1)
                         coin_buy_able_list=[]
                 if len(coin_buy_done_list) > 0:
                     sell_able_list = get_sellable_coin()
                     if len(sell_able_list) > 0:
                         _sell_each_coin(sell_able_list)
-                if t_now.minute == 30 and 0 <= t_now.second <=10:
+                if t_now.minute == 30 and 0 <= t_now.second <=3:
                     accm.send_slack_msg("#stock", msg_proc)
                 time.sleep(1)
             # 08:30:00 ~ 08:40:00 프로세스 종료
