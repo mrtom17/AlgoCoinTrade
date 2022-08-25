@@ -55,7 +55,7 @@ def get_buy_coin_info(coins):
             ticker = coin[0]
             bestk = coin[1]
             df = pyupbit.get_ohlcv(ticker, interval='day', count=10)
-            target_price = df.iloc[8]['close'] + (df.iloc[8]['high'] - df.iloc[8]['low']) * bestk
+            target_price = df.iloc[9]['open'] + (df.iloc[8]['high'] - df.iloc[8]['low']) * bestk
             closes = df['close'].sort_index()
             _ma5 = closes.rolling(window=5).mean()
             _ma10 = closes.rolling(window=10).mean()
@@ -73,7 +73,6 @@ def get_buy_coin_info(coins):
                 t_price = _t_p * _b_unit
                 t_price = int(t_price)
             _coin_output = {'coin' : ticker ,'target_p' : t_price , 'ma5' : ma5, 'ma10' : ma10}
-            #print(t_price, _coin_output)
             coin_output.append(_coin_output)
             time.sleep(0.5)
         return coin_output
@@ -138,9 +137,11 @@ def _buy_coin(infos):
         if buy_qty < 1:
             return False
         
-        if current_price > t_price and current_price > _ma5 and current_price > _ma10:
+        #print(str(ticker),current_price,t_price,_ma5,_ma10)
+        if current_price > t_price:
             setlog(str(ticker) + '는 주문 수량 (' + str(buy_qty) +') EA : ' + str(t_price) + ' meets the buy condition!`')
             upbit_conn = accm.conn_upbit()
+
             ret = upbit_conn.buy_limit_order(ticker,t_price,buy_qty)
 
             if 'error' in ret:
@@ -221,7 +222,7 @@ if __name__ == '__main__':
     try:
 
         coin_list = accm._cfg['coinlist']
-        target_coin_values = get_buy_coin_info(coin_list)
+        target_coin_values = []
         coin_buy_done_list = []
         coin_target_buy_count = 3
         buy_percent = 0.33
@@ -242,7 +243,6 @@ if __name__ == '__main__':
             t_buy_two = t_now.replace(hour=0, minute=0, second=0, microsecond=0)
             t_end_two = t_now.replace(hour=8, minute=30, second=0, microsecond=0)
             t_exit = t_now.replace(hour=8, minute=40, second=0,microsecond=0)
-
             # 09:00:00 ~ 09:05:00 잔여 코인 전량 매도
             if t_9 < t_now < t_sell_end and soldout == False:
                 soldout = True
@@ -251,20 +251,31 @@ if __name__ == '__main__':
                     setlog('09:00:00 ~ 09:05:00 잔여 코인 전량 매도')
                     accm.send_slack_msg("#stock", '09:00:00 ~ 09:05:00 잔여 코인 전량 매도')
                     _set_init()
+                if target_coin_values:
+                    pass
+                else:
+                    target_coin_values = get_buy_coin_info(coin_list)
             # 09:05:00 ~ 23:59:59 변동성 돌파 매수 진행 , # 00:00:00 ~ 08:30:00 변동성 돌파 매수 진행            
             if t_buy_one < t_now < t_end_one or t_buy_two < t_now < t_end_two:
+                if target_coin_values:
+                    pass
+                else:
+                    target_coin_values = get_buy_coin_info(coin_list)
+
                 if len(coin_buy_done_list) < coin_target_buy_count:
                     for infos in target_coin_values:
                         if infos['coin'] in coin_buy_done_list:
-                            continue
-                        if _buy_coin(infos) == False:
-                            continue
-                        time.sleep(5)
+                            pass
+                        if len(coin_buy_done_list) < coin_target_buy_count:
+                            _buy_coin(infos)
+                        else:
+                            pass
+                        time.sleep(1)
                 if len(coin_buy_done_list) > 0:
                     sell_able_list = get_sellable_coin()
                     if len(sell_able_list) > 0:
                         _sell_each_coin(sell_able_list)
-                if t_now.minute == 30 and 0 <= t_now.second <=3:
+                if t_now.minute == 30 and 0 <= t_now.second <=10:
                     accm.send_slack_msg("#stock", msg_proc)
                 time.sleep(1)
             # 08:30:00 ~ 08:40:00 프로세스 종료
