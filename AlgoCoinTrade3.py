@@ -22,6 +22,9 @@ msg_sellfail = '`sell_all() returned False -> 변동성 돌파 거래 코인 매
 
 def _set_init():
 
+    coin_list = accm._cfg['coinlist']
+    target_coin_values = []
+    coin_buy_done_list = []
     coin_target_buy_count = 3
     buy_percent = 0.33
     coin_name, coin_cash = get_mycoin_balance('KRW')
@@ -30,6 +33,11 @@ def _set_init():
     setlog('----------------100% 증거금 주문 가능 금액 :'+str(coin_cash))
     setlog('----------------종목별 주문 비율 :'+str(buy_percent))
     setlog('----------------종목별 주문 금액 :'+str(buy_amount))
+    setlog('----------------target_coin_values :'+str(target_coin_values))
+    setlog('----------------coin_buy_done_list :'+str(coin_buy_done_list))
+    setlog('----------------coin_target_buy_count :'+str(coin_target_buy_count))
+    setlog('----------------soldout :'+str(soldout))
+    setlog('----------------coin_list :'+str(coin_list))
 
 def get_mycoin_balance(coin):
 
@@ -64,6 +72,7 @@ def get_buy_coin_info(coins):
             _ask_p = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['ask_price']
             _bid_p = pyupbit.get_orderbook(ticker=ticker)['orderbook_units'][0]['bid_price']
             _b_unit = _ask_p - _bid_p
+
             if _b_unit < 1 :
                 _t_p = target_price % _b_unit
                 t_price = str(target_price)[:4]
@@ -72,6 +81,7 @@ def get_buy_coin_info(coins):
                 _t_p = target_price // _b_unit
                 t_price = _t_p * _b_unit
                 t_price = int(t_price)
+
             _coin_output = {'coin' : ticker ,'target_p' : t_price , 'ma5' : ma5, 'ma10' : ma10}
             coin_output.append(_coin_output)
             time.sleep(0.5)
@@ -186,21 +196,23 @@ def _sell_coin():
                 if c['currency'] == 'KRW':
                     continue
                 total_qty += float(c['balance'])
-            #print(total_qty)
+
             if total_qty >= 0 and total_qty < 1:
                 return True
 
             for c in coins:
-                if c['currency'] != 'KRW' and float(c['balance']) > 1:
+                if c['currency'] != 'KRW' and float(c['balance']) >= 1:
                     ticker = 'KRW-'+c['currency']
                     balance = float(c['balance'])
                     ret = upbit_conn.sell_market_order(ticker,balance)
                     if ret:
                         setlog('변동성 돌파 매도 주문 성공 -> 코인('+str(ticker)+')')
+                        sellflag = True
                     else:
                         setlog('변동성 돌파 매도 주문 실패 -> 코인('+str(ticker)+')')
+                        sellflag = False
                 time.sleep(1)
-            time.sleep(5)
+            return sellflag
     except Exception as ex:
         setlog("sell_all() -> exception! " + str(ex))
 
@@ -210,6 +222,7 @@ def _do_cancle(coin_list):
         for coin in coin_list:
             ticker = coin[0]
             res = upbit_conn.get_order(ticker)
+            print('_do_cancle',ticker, res)
             if res:
                 cancle_flg = res[0]['state']
                 if cancle_flg == 'wait':
@@ -243,23 +256,22 @@ if __name__ == '__main__':
             t_buy_two = t_now.replace(hour=0, minute=0, second=0, microsecond=0)
             t_end_two = t_now.replace(hour=8, minute=30, second=0, microsecond=0)
             t_exit = t_now.replace(hour=8, minute=40, second=0,microsecond=0)
+            
             # 09:00:00 ~ 09:05:00 잔여 코인 전량 매도
             if t_9 < t_now < t_sell_end and soldout == False:
                 soldout = True
                 _do_cancle(coin_list)
                 if _sell_coin() == True:
-                    setlog('09:00:00 ~ 09:05:00 잔여 코인 전량 매도')
-                    accm.send_slack_msg("#stock", '09:00:00 ~ 09:05:00 잔여 코인 전량 매도')
-                    _set_init()
-                if target_coin_values:
-                    pass
-                else:
-                    target_coin_values = get_buy_coin_info(coin_list)
+                    setlog('['+str(t_now)+'] 잔여 코인 전량 매도')
+                    accm.send_slack_msg("#stock", '['+str(t_now)+'] 잔여 코인 전량 매도')
+
             # 09:05:00 ~ 23:59:59 변동성 돌파 매수 진행 , # 00:00:00 ~ 08:30:00 변동성 돌파 매수 진행            
             if t_buy_one < t_now < t_end_one or t_buy_two < t_now < t_end_two:
+
                 if target_coin_values:
                     pass
                 else:
+                    _set_init()
                     target_coin_values = get_buy_coin_info(coin_list)
 
                 if len(coin_buy_done_list) < coin_target_buy_count:
